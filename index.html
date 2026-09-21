@@ -27,6 +27,7 @@
       --surveyed: #12A276;
       --surveyed-bright: #2ECF9B;
       --carbide: #E8A33D;
+      --alarm: #FF6B6B;
       --brass: #D9B37A;
       --linen: #F4ECD8;
       --linen-dim: #B9B5A4;
@@ -89,6 +90,26 @@
     .overdue p { margin: 0; font-size: 15px; line-height: 1.5; color: var(--linen); }
     .overdue a { color: var(--carbide); font-weight: 600; }
 
+    /* The only red on the page, as in the app: she pressed SOS. */
+    .alarm {
+      border: 2px solid var(--alarm);
+      border-radius: 6px;
+      padding: 16px;
+      display: none;
+      gap: 10px;
+      flex-direction: column;
+    }
+    .alarm.on { display: flex; }
+    .alarm h2 { margin: 0; font-size: 20px; font-weight: 700; color: var(--alarm); }
+    .alarm p { margin: 0; font-size: 15px; line-height: 1.5; color: var(--linen); }
+    .alarm .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .alarm .actions a {
+      display: inline-flex; align-items: center; min-height: 48px; padding: 0 16px;
+      border-radius: 6px; font-weight: 600; text-decoration: none;
+    }
+    .alarm .call { background: var(--alarm); color: var(--ground); }
+    .alarm .maps { border: 1px solid var(--rule-strong); color: var(--linen); }
+
     .plan {
       position: relative;
       height: min(56dvh, 520px);
@@ -149,6 +170,15 @@
     <h1 id="headline">…</h1>
     <p class="status" id="status" aria-live="polite"></p>
 
+    <section class="alarm" id="alarm" role="alert">
+      <h2 id="alarm-title"></h2>
+      <p id="alarm-body"></p>
+      <div class="actions">
+        <a class="call" href="tel:911" id="alarm-call"></a>
+        <a class="maps" id="alarm-maps" target="_blank" rel="noopener noreferrer" hidden></a>
+      </div>
+    </section>
+
     <section class="overdue" id="overdue" role="alert">
       <h2 id="overdue-title"></h2>
       <p id="overdue-body"></p>
@@ -203,6 +233,13 @@
         staleNote: 'Su teléfono puede estar bloqueado: por ahora la app solo envía la ubicación mientras está abierta.',
         noSignalYet: 'Esperando la primera señal de ubicación…',
         precision: (m) => `Precisión <b>±${m} m</b>`,
+        askedHelp: (n) => `${n} pidió ayuda`,
+        alarmTitle: (t) => `Pulsó SOS a las ${t}`,
+        alarmBody:
+          'Llámale ahora. Si no contesta o crees que está en peligro, llama al 911 y diles dónde está: el plano y el enlace de mapa de abajo muestran su última ubicación.',
+        call911: 'Llamar al 911',
+        openMaps: 'Abrir en Google Maps',
+        alarmCleared: (t) => `A las <strong>${t}</strong> quitó la alarma y dijo que está bien.`,
         planLabel: 'Plano de las calles alrededor de su última ubicación.',
         footer:
           'Solo tú y quien te mandó este enlace pueden verlo. Muestra su última ubicación, nunca el recorrido, y todo se borra 24 horas después de que llegue. A Paso Seguro no sustituye al 911.',
@@ -228,6 +265,13 @@
         staleNote: 'Their phone may be locked: for now the app only sends location while it is open.',
         noSignalYet: 'Waiting for the first location signal…',
         precision: (m) => `Accuracy <b>±${m} m</b>`,
+        askedHelp: (n) => `${n} asked for help`,
+        alarmTitle: (t) => `Pressed SOS at ${t}`,
+        alarmBody:
+          'Call them now. If they do not answer or you think they are in danger, call 911 and tell them where they are: the plan and the map link below show their last location.',
+        call911: 'Call 911',
+        openMaps: 'Open in Google Maps',
+        alarmCleared: (t) => `At <strong>${t}</strong> they turned the alarm off and said they are OK.`,
         planLabel: 'Plan of the streets around their last location.',
         footer:
           'Only you and whoever sent you this link can see it. It shows their latest location, never the route, and everything is deleted 24 hours after they arrive. A Paso Seguro does not replace 911.',
@@ -343,6 +387,7 @@
       $('status').textContent = T.invalidBody;
       for (const id of ['plan', 'numeral', 'measures']) $(id).hidden = true;
       $('overdue').classList.remove('on');
+      $('alarm').classList.remove('on');
     }
 
     async function render(walk) {
@@ -353,6 +398,7 @@
         $('headline').textContent = walk.outcome === 'arrived' ? T.arrived(name) : T.cancelled(name);
         $('status').innerHTML = (walk.outcome === 'arrived' ? T.arrivedAt : T.cancelledAt)(walk.ended_at && clock(walk.ended_at));
         $('overdue').classList.remove('on');
+        $('alarm').classList.remove('on');
         for (const id of ['plan', 'numeral', 'measures']) $(id).hidden = true;
         return false; // nothing left to watch
       }
@@ -361,16 +407,36 @@
       const late = msToEta <= 0;
       const mins = Math.max(0, Math.ceil(Math.abs(msToEta) / 60_000));
 
-      $('headline').textContent = T.walking(name);
-      $('status').innerHTML = late ? '' : T.due(clock(walk.eta_at), mins);
+      // An alarm outranks everything else on the page, lateness included: the
+      // arrival time stops mattering the moment she asks for help.
+      const alarm = walk.alarm_at && !walk.alarm_cleared_at;
+      $('alarm').classList.toggle('on', Boolean(alarm));
+      if (alarm) {
+        $('headline').textContent = T.askedHelp(name);
+        $('status').innerHTML = '';
+        $('alarm-title').textContent = T.alarmTitle(clock(walk.alarm_at));
+        $('alarm-body').textContent = T.alarmBody;
+        $('alarm-call').textContent = T.call911;
+        const maps = $('alarm-maps');
+        maps.hidden = walk.last_lon == null;
+        if (walk.last_lon != null) {
+          maps.textContent = T.openMaps;
+          maps.href = `https://maps.google.com/?q=${walk.last_lat.toFixed(6)},${walk.last_lon.toFixed(6)}`;
+        }
+      } else {
+        $('headline').textContent = T.walking(name);
+        $('status').innerHTML =
+          (walk.alarm_cleared_at ? T.alarmCleared(clock(walk.alarm_cleared_at)) + ' ' : '') +
+          (late ? '' : T.due(clock(walk.eta_at), mins));
+      }
 
-      $('overdue').classList.toggle('on', late);
-      if (late) {
+      $('overdue').classList.toggle('on', late && !alarm);
+      if (late && !alarm) {
         $('overdue-title').textContent = T.lateTitle(mins);
         $('overdue-body').innerHTML = T.lateBody;
       }
 
-      $('numeral').hidden = false;
+      $('numeral').hidden = Boolean(alarm);
       $('numeral').classList.toggle('late', late);
       $('numeral-n').textContent = String(mins);
       $('numeral-l').textContent = late ? T.minLate : T.minLeft;
