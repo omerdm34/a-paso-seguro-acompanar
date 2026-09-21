@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#07100C" />
+  <!-- The link is a credential; a search engine must never hold one. -->
+  <meta name="robots" content="noindex, nofollow, noarchive" />
+  <meta name="referrer" content="no-referrer" />
+  <title>A Paso Seguro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Poppins:wght@400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <style>
+    /*
+      The companion view: what the person she trusts sees, in any browser, with
+      no app and no account. The same world as the app — a black sheet, only
+      surveyed streets drawn on it, one warm lamp for her — because the person
+      watching should recognise what she is looking at.
+    */
+    :root {
+      --ground: #07100C;
+      --surface: #0D1A14;
+      --surveyed: #12A276;
+      --surveyed-bright: #2ECF9B;
+      --carbide: #E8A33D;
+      --brass: #D9B37A;
+      --linen: #F4ECD8;
+      --linen-dim: #B9B5A4;
+      --linen-faint: #7E8A80;
+      --rule: rgba(244, 236, 216, 0.14);
+      --rule-strong: rgba(244, 236, 216, 0.40);
+      --display: 'Poppins', system-ui, sans-serif;
+      --measure: 'IBM Plex Mono', ui-monospace, monospace;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--ground); color: var(--linen); }
+    body {
+      font-family: var(--display);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+    }
+    ::selection { background: var(--surveyed); color: var(--ground); }
+    main {
+      width: 100%;
+      max-width: 560px;
+      margin: 0 auto;
+      padding: max(20px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      flex: 1;
+    }
+    .brand {
+      font-family: var(--measure);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--linen-faint);
+    }
+    h1 {
+      font-weight: 700;
+      font-size: clamp(26px, 7vw, 34px);
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      margin: 0;
+      text-wrap: balance;
+    }
+    .status { font-size: 16px; line-height: 1.5; color: var(--linen-dim); margin: 0; }
+    .status strong { color: var(--linen); font-weight: 500; }
+
+    /* The one thing that must not be missed. Amber, not red: red in this
+       product means an alarm she raised, and this is a walk running late. */
+    .overdue {
+      border: 2px solid var(--carbide);
+      border-radius: 6px;
+      padding: 14px 16px;
+      display: none;
+      gap: 6px;
+      flex-direction: column;
+    }
+    .overdue.on { display: flex; }
+    .overdue h2 { margin: 0; font-size: 18px; font-weight: 600; color: var(--carbide); }
+    .overdue p { margin: 0; font-size: 15px; line-height: 1.5; color: var(--linen); }
+    .overdue a { color: var(--carbide); font-weight: 600; }
+
+    .plan {
+      position: relative;
+      height: min(56dvh, 520px);
+      margin: 0 -20px;
+      border-top: 1px solid var(--rule);
+      border-bottom: 1px solid var(--rule);
+      overflow: hidden;
+    }
+    .plan svg { display: block; width: 100%; height: 100%; }
+    .plan .empty {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--linen-faint); font-size: 14px; padding: 24px; text-align: center;
+    }
+
+    .measures { display: flex; flex-direction: column; gap: 6px; }
+    .measure {
+      font-family: var(--measure);
+      font-size: 13px;
+      color: var(--linen-dim);
+      display: flex; gap: 8px; align-items: baseline;
+    }
+    .measure::before {
+      content: ''; width: 2px; height: 10px; background: var(--surveyed); flex: none;
+    }
+    .measure.stale::before { background: var(--carbide); }
+    .measure b { color: var(--surveyed-bright); font-weight: 500; }
+    .measure.stale b { color: var(--carbide); }
+
+    .numeral { display: flex; flex-direction: column; gap: 4px; }
+    .numeral .n {
+      font-weight: 700; font-size: 64px; line-height: 1; letter-spacing: -0.04em;
+      font-variant-numeric: tabular-nums;
+    }
+    .numeral.late .n { color: var(--carbide); }
+    .numeral .l {
+      font-family: var(--measure); font-size: 11px; letter-spacing: 0.1em; color: var(--linen-dim);
+    }
+
+    footer {
+      margin-top: auto;
+      padding-top: 12px;
+      border-top: 1px solid var(--rule);
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--linen-faint);
+    }
+    [hidden] { display: none !important; }
+    @media (prefers-reduced-motion: no-preference) {
+      .lamp { transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1); }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="brand">A Paso Seguro</div>
+
+    <h1 id="headline">…</h1>
+    <p class="status" id="status" aria-live="polite"></p>
+
+    <section class="overdue" id="overdue" role="alert">
+      <h2 id="overdue-title"></h2>
+      <p id="overdue-body"></p>
+    </section>
+
+    <div class="plan" id="plan" hidden>
+      <svg id="sheet" role="img" aria-label=""></svg>
+      <div class="empty" id="plan-empty" hidden></div>
+    </div>
+
+    <div class="numeral" id="numeral" hidden>
+      <span class="n" id="numeral-n"></span>
+      <span class="l" id="numeral-l"></span>
+    </div>
+
+    <div class="measures" id="measures"></div>
+
+    <footer id="footer"></footer>
+  </main>
+
+  <script>
+    'use strict';
+
+    // Filled in by tools/build-companion.mjs from the app's own .env. The anon
+    // key is public by design: what protects a walk is the 244-bit token in the
+    // link, checked inside walk_by_token(), not this key.
+    const SUPABASE_URL = 'https://ybkavhahyfdvcifzcunf.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlia2F2aGFoeWZkdmNpZnpjdW5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5MTgwNDIsImV4cCI6MjEwNTQ5NDA0Mn0.mDJesbV5cELgrXIa3-B1xfutisUUlZwAyzsFM7UpFoY';
+
+    const POLL_MS = 10_000;
+    const STALE_AFTER_MS = 2 * 60_000;
+
+    const COPY = {
+      es: {
+        someone: 'Alguien',
+        walking: (n) => `${n} va caminando`,
+        arrived: (n) => `${n} llegó`,
+        cancelled: (n) => `${n} bajó su ficha`,
+        invalidTitle: 'Este enlace ya no está activo',
+        invalidBody: 'El trayecto terminó hace más de un día, o el enlace está incompleto. No guardamos nada después de eso.',
+        loading: 'Cargando…',
+        offline: 'No hay conexión. Reintentando…',
+        due: (t, m) => `Debe llegar a las <strong>${t}</strong>, en ${m} min.`,
+        arrivedAt: (t) => `A las <strong>${t}</strong> bajó su ficha. Su ubicación ya no se comparte.`,
+        cancelledAt: (t) => `A las <strong>${t}</strong> bajó su ficha sin marcar llegada. Su ubicación ya no se comparte.`,
+        lateTitle: (m) => `Debía llegar hace ${m} min y su ficha sigue colgada`,
+        lateBody:
+          'Puede que solo se le haya olvidado bajarla. Llámale o escríbele. Si no contesta y crees que está en peligro, llama al <a href="tel:911">911</a>.',
+        minLeft: 'MIN PARA SU HORA DE LLEGADA',
+        minLate: 'MIN TARDE',
+        lastSignal: (m) => (m < 1 ? 'Última señal hace <b>menos de 1 min</b>' : `Última señal hace <b>${m} min</b>`),
+        staleNote: 'Su teléfono puede estar bloqueado: por ahora la app solo envía la ubicación mientras está abierta.',
+        noSignalYet: 'Esperando la primera señal de ubicación…',
+        precision: (m) => `Precisión <b>±${m} m</b>`,
+        planLabel: 'Plano de las calles alrededor de su última ubicación.',
+        footer:
+          'Solo tú y quien te mandó este enlace pueden verlo. Muestra su última ubicación, nunca el recorrido, y todo se borra 24 horas después de que llegue. A Paso Seguro no sustituye al 911.',
+      },
+      en: {
+        someone: 'Someone',
+        walking: (n) => `${n} is walking`,
+        arrived: (n) => `${n} arrived`,
+        cancelled: (n) => `${n} took their tag down`,
+        invalidTitle: 'This link is no longer active',
+        invalidBody: 'The walk ended more than a day ago, or the link is incomplete. Nothing is kept after that.',
+        loading: 'Loading…',
+        offline: 'No connection. Retrying…',
+        due: (t, m) => `Due at <strong>${t}</strong>, in ${m} min.`,
+        arrivedAt: (t) => `At <strong>${t}</strong> they took their tag down. Their location is no longer shared.`,
+        cancelledAt: (t) => `At <strong>${t}</strong> they took their tag down without marking arrival. Their location is no longer shared.`,
+        lateTitle: (m) => `Was due ${m} min ago and their tag is still up`,
+        lateBody:
+          'They may just have forgotten to take it down. Call or message them. If they do not answer and you think they are in danger, call <a href="tel:911">911</a>.',
+        minLeft: 'MIN TO THEIR ARRIVAL TIME',
+        minLate: 'MIN LATE',
+        lastSignal: (m) => (m < 1 ? 'Last signal <b>under 1 min</b> ago' : `Last signal <b>${m} min</b> ago`),
+        staleNote: 'Their phone may be locked: for now the app only sends location while it is open.',
+        noSignalYet: 'Waiting for the first location signal…',
+        precision: (m) => `Accuracy <b>±${m} m</b>`,
+        planLabel: 'Plan of the streets around their last location.',
+        footer:
+          'Only you and whoever sent you this link can see it. It shows their latest location, never the route, and everything is deleted 24 hours after they arrive. A Paso Seguro does not replace 911.',
+      },
+    };
+
+    const lang = (navigator.language || 'es').toLowerCase().startsWith('en') ? 'en' : 'es';
+    const T = COPY[lang];
+    document.documentElement.lang = lang;
+
+    const $ = (id) => document.getElementById(id);
+    const token = new URLSearchParams(location.search).get('t') || '';
+
+    const clock = (iso) =>
+      new Date(iso).toLocaleTimeString(lang === 'es' ? 'es-MX' : 'en-US', { hour: '2-digit', minute: '2-digit' });
+
+    async function rpc(name, args) {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
+        method: 'POST',
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(args),
+      });
+      if (!res.ok) throw new Error(`${name}: ${res.status}`);
+      return res.json();
+    }
+
+    /* ---------------------------------------------------------------- plan */
+
+    // Equirectangular around a point: exact enough across the few hundred
+    // metres the page shows, and it is the projection the app uses too.
+    const M_LAT = 110540;
+    const M_LON = 111320;
+    const toMetres = (o, lon, lat) => [
+      (lon - o.lon) * Math.cos((o.lat * Math.PI) / 180) * M_LON,
+      -(lat - o.lat) * M_LAT,
+    ];
+
+    // Liveliness bands, faintest first: the same five the app draws.
+    const BANDS = [
+      [0.2, 0.22, 1], [0.35, 0.38, 1.2], [0.5, 0.58, 1.6], [0.65, 0.8, 2.1], [Infinity, 1, 2.8],
+    ];
+
+    let survey = null; // { at: {lon, lat}, stretches: [...] }
+
+    async function loadSurvey(at) {
+      const rows = await rpc('survey_near', { at_lon: at.lon, at_lat: at.lat, radius_m: 600 });
+      survey = { at, stretches: rows };
+    }
+
+    function drawPlan(at) {
+      const svg = $('sheet');
+      const box = $('plan').getBoundingClientRect();
+      const w = box.width, h = box.height;
+      svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+      // About 350 m to the nearer edge: enough to see which streets she is
+      // between, close enough to read them.
+      const pxPerM = Math.min(w, h) / 2 / 350;
+      const project = (lon, lat) => {
+        const [x, y] = toMetres(at, lon, lat);
+        return [w / 2 + x * pxPerM, h / 2 + y * pxPerM];
+      };
+
+      const paths = BANDS.map(() => []);
+      for (const s of survey ? survey.stretches : []) {
+        const pts = s.coords.map(([lon, lat]) => project(lon, lat));
+        const d = pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`).join('');
+        const band = BANDS.findIndex(([upTo]) => (s.liveliness ?? 0) < upTo);
+        paths[band].push(d);
+      }
+
+      const ns = 'http://www.w3.org/2000/svg';
+      svg.replaceChildren();
+      const defs = document.createElementNS(ns, 'defs');
+      defs.innerHTML =
+        '<radialGradient id="pool" cx="50%" cy="50%" r="50%">' +
+        '<stop offset="0" stop-color="#E8A33D" stop-opacity="0.5"/>' +
+        '<stop offset="0.35" stop-color="#E8A33D" stop-opacity="0.2"/>' +
+        '<stop offset="1" stop-color="#E8A33D" stop-opacity="0"/></radialGradient>';
+      svg.appendChild(defs);
+
+      BANDS.forEach(([, opacity, width], i) => {
+        if (!paths[i].length) return;
+        const p = document.createElementNS(ns, 'path');
+        p.setAttribute('d', paths[i].join(''));
+        p.setAttribute('fill', 'none');
+        p.setAttribute('stroke', i === BANDS.length - 1 ? '#2ECF9B' : '#12A276');
+        p.setAttribute('stroke-opacity', opacity);
+        p.setAttribute('stroke-width', width);
+        p.setAttribute('stroke-linecap', 'round');
+        p.setAttribute('stroke-linejoin', 'round');
+        svg.appendChild(p);
+      });
+
+      // Her lamp, dead centre: the plan is drawn around her, not around the city.
+      const pool = document.createElementNS(ns, 'circle');
+      pool.setAttribute('cx', w / 2); pool.setAttribute('cy', h / 2); pool.setAttribute('r', 34);
+      pool.setAttribute('fill', 'url(#pool)');
+      const dot = document.createElementNS(ns, 'circle');
+      dot.setAttribute('cx', w / 2); dot.setAttribute('cy', h / 2); dot.setAttribute('r', 5);
+      dot.setAttribute('fill', '#E8A33D');
+      svg.append(pool, dot);
+      svg.setAttribute('aria-label', T.planLabel);
+    }
+
+    /* ------------------------------------------------------------- render */
+
+    function showInvalid() {
+      $('headline').textContent = T.invalidTitle;
+      $('status').textContent = T.invalidBody;
+      for (const id of ['plan', 'numeral', 'measures']) $(id).hidden = true;
+      $('overdue').classList.remove('on');
+    }
+
+    async function render(walk) {
+      const name = walk.walker_name || T.someone;
+      const now = new Date(walk.server_now).getTime();
+
+      if (walk.ended_at) {
+        $('headline').textContent = walk.outcome === 'arrived' ? T.arrived(name) : T.cancelled(name);
+        $('status').innerHTML = (walk.outcome === 'arrived' ? T.arrivedAt : T.cancelledAt)(walk.ended_at && clock(walk.ended_at));
+        $('overdue').classList.remove('on');
+        for (const id of ['plan', 'numeral', 'measures']) $(id).hidden = true;
+        return false; // nothing left to watch
+      }
+
+      const msToEta = new Date(walk.eta_at).getTime() - now;
+      const late = msToEta <= 0;
+      const mins = Math.max(0, Math.ceil(Math.abs(msToEta) / 60_000));
+
+      $('headline').textContent = T.walking(name);
+      $('status').innerHTML = late ? '' : T.due(clock(walk.eta_at), mins);
+
+      $('overdue').classList.toggle('on', late);
+      if (late) {
+        $('overdue-title').textContent = T.lateTitle(mins);
+        $('overdue-body').innerHTML = T.lateBody;
+      }
+
+      $('numeral').hidden = false;
+      $('numeral').classList.toggle('late', late);
+      $('numeral-n').textContent = String(mins);
+      $('numeral-l').textContent = late ? T.minLate : T.minLeft;
+
+      const measures = [];
+      if (walk.last_seen_at && walk.last_lon != null) {
+        const age = Math.floor((now - new Date(walk.last_seen_at).getTime()) / 60_000);
+        const stale = now - new Date(walk.last_seen_at).getTime() > STALE_AFTER_MS;
+        measures.push(`<div class="measure${stale ? ' stale' : ''}">${T.lastSignal(age)}</div>`);
+        if (stale) measures.push(`<div class="measure stale">${T.staleNote}</div>`);
+        if (walk.last_accuracy_m != null) {
+          measures.push(`<div class="measure">${T.precision(Math.round(walk.last_accuracy_m))}</div>`);
+        }
+
+        const at = { lon: walk.last_lon, lat: walk.last_lat };
+        $('plan').hidden = false;
+        $('plan-empty').hidden = true;
+        if (!survey || Math.hypot(...toMetres(survey.at, at.lon, at.lat)) > 250) {
+          try { await loadSurvey(at); } catch { /* draw what we have */ }
+        }
+        drawPlan(at);
+      } else {
+        $('plan').hidden = false;
+        $('plan-empty').hidden = false;
+        $('plan-empty').textContent = T.noSignalYet;
+      }
+      $('measures').hidden = false;
+      $('measures').innerHTML = measures.join('');
+      return true;
+    }
+
+    async function tick() {
+      try {
+        const rows = await rpc('walk_by_token', { walk_token: token });
+        if (!rows.length) { showInvalid(); return; }
+        const keepWatching = await render(rows[0]);
+        if (keepWatching) setTimeout(tick, POLL_MS);
+      } catch {
+        $('status').textContent = T.offline;
+        setTimeout(tick, POLL_MS);
+      }
+    }
+
+    $('footer').textContent = T.footer;
+    $('headline').textContent = T.loading;
+    if (!/^[0-9a-f]{64}$/.test(token)) showInvalid();
+    else tick();
+  </script>
+</body>
+</html>
